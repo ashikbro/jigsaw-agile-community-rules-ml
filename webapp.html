@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Moderation AI - Interactive Testing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .form-section {
+            flex: 1;
+            padding: 30px;
+            border-right: 1px solid #eee;
+        }
+
+        .chatbot-section {
+            flex: 1;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4facfe;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #4facfe;
+        }
+
+        .prediction-safe {
+            border-left-color: #28a745;
+        }
+
+        .prediction-violation {
+            border-left-color: #dc3545;
+        }
+
+        .confidence-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .confidence-safe {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+
+        .confidence-violation {
+            background: linear-gradient(90deg, #dc3545, #fd7e14);
+        }
+
+        /* Chatbot Styles */
+        .chat-container {
+            height: 400px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .message.bot .message-bubble {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4facfe;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        .batch-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .explanation-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .form-section {
+                border-right: none;
+                border-bottom: 1px solid #eee;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Content Moderation AI</h1>
+            <p>Interactive Testing Platform for Explainable AI Text Classification</p>
+            <div style="margin-top: 15px;">
+                <span class="status-indicator" id="apiStatus"></span>
+                <span id="apiStatusText">Checking API status...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Form Section -->
+            <div class="form-section">
+                <h2 class="section-title">📝 Single Text Analysis</h2>
+                
+                <form id="textForm">
+                    <div class="form-group">
+                        <label for="textInput">Text to Analyze:</label>
+                        <textarea id="textInput" placeholder="Enter text to check for content violations..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modelType">Model Type:</label>
+                        <select id="modelType">
+                            <option value="auto">Auto (Best Available)</option>
+                            <option value="original">Original Model</option>
+                            <option value="human_aware">Human-Aware Model</option>
+                            <option value="context_aware">Context-Aware Model</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="includeExplanation"> Include Explainable AI Analysis
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="includeProbabilities" checked> Include Prediction Probabilities
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn" id="analyzeBtn">🔍 Analyze Text</button>
+                    <button type="button" class="btn" id="clearBtn">🗑️ Clear</button>
+                </form>
+
+                <div id="results"></div>
+
+                <!-- Batch Processing Section -->
+                <div class="batch-section">
+                    <h3 class="section-title">📊 Batch Processing</h3>
+                    <div class="form-group">
+                        <label for="batchInput">Multiple Texts (one per line):</label>
+                        <textarea id="batchInput" placeholder="Enter multiple texts, one per line..."></textarea>
+                    </div>
+                    <button type="button" class="btn" id="batchAnalyzeBtn">🚀 Analyze Batch</button>
+                </div>
+            </div>
+
+            <!-- Chatbot Section -->
+            <div class="chatbot-section">
+                <h2 class="section-title">💬 AI Assistant Chat</h2>
+                
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message bot">
+                            <div class="message-bubble">
+                                👋 Hi! I'm your AI content moderation assistant. Send me any text and I'll analyze it for potential violations. You can also ask me questions about the models!
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <div class="chat-input-group">
+                            <input type="text" class="chat-input" id="chatInput" placeholder="Type your message or text to analyze...">
+                            <button class="btn" id="chatSendBtn">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="loading" id="chatLoading">
+                    <div class="spinner"></div>
+                    <div>AI is thinking...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let apiOnline = false;
+
+        // Check API status on load
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                apiOnline = response.ok;
+                
+                const statusIndicator = document.getElementById('apiStatus');
+                const statusText = document.getElementById('apiStatusText');
+                
+                if (apiOnline) {
+                    statusIndicator.className = 'status-indicator status-online';
+                    statusText.textContent = 'API Online - Ready to analyze';
+                } else {
+                    statusIndicator.className = 'status-indicator status-offline';
+                    statusText.textContent = 'API Offline - Please start the server';
+                }
+            } catch (error) {
+                apiOnline = false;
+                document.getElementById('apiStatus').className = 'status-indicator status-offline';
+                document.getElementById('apiStatusText').textContent = 'API Offline - Connection failed';
+            }
+        }
+
+        // Single text analysis
+        document.getElementById('textForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!apiOnline) {
+                alert('API is offline. Please start the server first.');
+                return;
+            }
+
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '🔄 Analyzing...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        model_type: document.getElementById('modelType').value,
+                        include_explanation: document.getElementById('includeExplanation').checked,
+                        include_probabilities: document.getElementById('includeProbabilities').checked
+                    })
+                });
+
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                displayError('Failed to analyze text: ' + error.message);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 Analyze Text';
+            }
+        });
+
+        // Batch processing
+        document.getElementById('batchAnalyzeBtn').addEventListener('click', async () => {
+            if (!apiOnline) {
+                alert('API is offline. Please start the server first.');
+                return;
+            }
+
+            const batchText = document.getElementById('batchInput').value.trim();
+            if (!batchText) {
+                alert('Please enter texts to analyze.');
+                return;
+            }
+
+            const texts = batchText.split('\n').filter(line => line.trim());
+            if (texts.length === 0) {
+                alert('Please enter valid texts.');
+                return;
+            }
+
+            const batchBtn = document.getElementById('batchAnalyzeBtn');
+            batchBtn.disabled = true;
+            batchBtn.textContent = '🔄 Processing...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/predict/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        texts: texts,
+                        model_type: document.getElementById('modelType').value,
+                        include_probabilities: true
+                    })
+                });
+
+                const result = await response.json();
+                displayBatchResults(result);
+            } catch (error) {
+                displayError('Failed to process batch: ' + error.message);
+            } finally {
+                batchBtn.disabled = false;
+                batchBtn.textContent = '🚀 Analyze Batch';
+            }
+        });
+
+        // Chat functionality
+        document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            if (!apiOnline) {
+                addChatMessage('bot', '❌ API is offline. Please start the server first.');
+                return;
+            }
+
+            // Add user message
+            addChatMessage('user', message);
+            input.value = '';
+
+            // Show loading
+            document.getElementById('chatLoading').style.display = 'block';
+
+            try {
+                // Check if it's a question or text to analyze
+                if (isQuestion(message)) {
+                    handleQuestion(message);
+                } else {
+                    // Analyze the text
+                    const response = await fetch(`${API_BASE_URL}/predict`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            text: message,
+                            model_type: 'auto',
+                            include_probabilities: true
+                        })
+                    });
+
+                    const result = await response.json();
+                    const botResponse = formatChatResponse(result);
+                    addChatMessage('bot', botResponse);
+                }
+            } catch (error) {
+                addChatMessage('bot', '❌ Sorry, I encountered an error: ' + error.message);
+            } finally {
+                document.getElementById('chatLoading').style.display = 'none';
+            }
+        }
+
+        function isQuestion(message) {
+            const questionWords = ['what', 'how', 'why', 'when', 'where', 'who', 'which', 'help', '?'];
+            const lowerMessage = message.toLowerCase();
+            return questionWords.some(word => lowerMessage.includes(word));
+        }
+
+        function handleQuestion(message) {
+            const lowerMessage = message.toLowerCase();
+            let response = '';
+
+            if (lowerMessage.includes('help')) {
+                response = `🤖 I can help you with:
+• Analyzing text for content violations
+• Explaining different model types
+• Showing confidence scores
+• Processing multiple texts
+
+Just send me any text and I'll analyze it!`;
+            } else if (lowerMessage.includes('model')) {
+                response = `🧠 Available Models:
+• **Auto**: Automatically selects the best model
+• **Original**: Basic classification model
+• **Human-Aware**: Considers human feedback patterns
+• **Context-Aware**: Analyzes contextual information
+
+Each model has different strengths for various content types.`;
+            } else if (lowerMessage.includes('how') && lowerMessage.includes('work')) {
+                response = `⚙️ How it works:
+1. You send text to analyze
+2. AI processes it using machine learning
+3. Returns prediction (safe/violation)
+4. Shows confidence score
+5. Optional: Provides explainable AI insights
+
+The system uses advanced NLP techniques for accurate content moderation.`;
+            } else {
+                response = `🤔 I'm not sure about that. Try asking about:
+• How the models work
+• Available model types
+• How to use the system
+
+Or just send me text to analyze!`;
+            }
+
+            setTimeout(() => {
+                addChatMessage('bot', response);
+                document.getElementById('chatLoading').style.display = 'none';
+            }, 1000);
+        }
+
+        function formatChatResponse(result) {
+            const emoji = result.prediction === 'safe' ? '✅' : '⚠️';
+            const confidence = (result.confidence * 100).toFixed(1);
+            
+            let response = `${emoji} **${result.prediction.toUpperCase()}** (${confidence}% confidence)\n`;
+            response += `🤖 Model: ${result.model_used}\n`;
+            response += `⏱️ Processing: ${result.processing_time_ms.toFixed(1)}ms`;
+            
+            if (result.probabilities) {
+                response += `\n\n📊 **Probabilities:**\n`;
+                response += `• Safe: ${(result.probabilities.safe * 100).toFixed(1)}%\n`;
+                response += `• Violation: ${(result.probabilities.violation * 100).toFixed(1)}%`;
+            }
+            
+            return response;
+        }
+
+        function addChatMessage(sender, message) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.innerHTML = message.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            messageDiv.appendChild(bubbleDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function displayResult(result) {
+            const resultsDiv = document.getElementById('results');
+            const predictionClass = result.prediction === 'safe' ? 'prediction-safe' : 'prediction-violation';
+            const confidenceClass = result.prediction === 'safe' ? 'confidence-safe' : 'confidence-violation';
+            const emoji = result.prediction === 'safe' ? '✅' : '⚠️';
+            
+            let html = `
+                <div class="result-card ${predictionClass}">
+                    <h3>${emoji} Prediction: ${result.prediction.toUpperCase()}</h3>
+                    <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</p>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill ${confidenceClass}" style="width: ${result.confidence * 100}%"></div>
+                    </div>
+                    <p><strong>Model Used:</strong> ${result.model_used}</p>
+                    <p><strong>Processing Time:</strong> ${result.processing_time_ms.toFixed(2)}ms</p>
+            `;
+            
+            if (result.probabilities) {
+                html += `
+                    <div style="margin-top: 15px;">
+                        <h4>📊 Detailed Probabilities:</h4>
+                        <p>Safe: ${(result.probabilities.safe * 100).toFixed(1)}%</p>
+                        <p>Violation: ${(result.probabilities.violation * 100).toFixed(1)}%</p>
+                    </div>
+                `;
+            }
+            
+            if (result.explanation) {
+                html += `
+                    <div class="explanation-section">
+                        <h4>🔍 Explainable AI Analysis:</h4>
+                        <p>Explanation data available (detailed analysis would be shown here)</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function displayBatchResults(result) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <div class="result-card">
+                    <h3>📊 Batch Analysis Results</h3>
+                    <p><strong>Total Processed:</strong> ${result.total_processed}</p>
+                    <p><strong>Total Time:</strong> ${result.total_time_ms.toFixed(2)}ms</p>
+                    <p><strong>Average Time per Text:</strong> ${(result.total_time_ms / result.total_processed).toFixed(2)}ms</p>
+                    <p><strong>Model Used:</strong> ${result.model_used}</p>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4>Individual Results:</h4>
+            `;
+            
+            result.results.forEach((item, index) => {
+                const emoji = item.prediction === 'safe' ? '✅' : '⚠️';
+                const textPreview = item.text.length > 50 ? item.text.substring(0, 50) + '...' : item.text;
+                html += `
+                    <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                        <strong>${index + 1}.</strong> ${emoji} ${item.prediction.toUpperCase()} 
+                        (${(item.confidence * 100).toFixed(1)}%) - "${textPreview}"
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function displayError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="result-card" style="border-left-color: #dc3545;">
+                    <h3>❌ Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Clear functionality
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('textInput').value = '';
+            document.getElementById('batchInput').value = '';
+            document.getElementById('results').innerHTML = '';
+        });
+
+        // Initialize
+        checkApiStatus();
+        setInterval(checkApiStatus, 30000); // Check every 30 seconds
+    </script>
+</body>
+</html>

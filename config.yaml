@@ -1,0 +1,47 @@
+
+# Reddit Comment Moderation - Configuration File
+# Modify these settings according to your needs
+
+# Model Configuration
+model:
+  name: "distilbert-base-uncased"
+  max_length: 128
+  batch_size: 16
+  learning_rate: 2e-5
+  epochs: 3
+  warmup_steps: 100
+
+# Data Configuration
+data:
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  random_seed: 42
+
+# Training Configuration
+training:
+  output_dir: "./models"
+  logging_steps: 100
+  save_steps: 500
+  eval_steps: 500
+  save_total_limit: 3
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_auc"
+  greater_is_better: true
+
+# Evaluation Configuration
+evaluation:
+  metrics: ["auc", "precision", "recall", "f1"]
+  threshold: 0.5
+
+# XAI Configuration
+xai:
+  methods: ["lime", "shap"]
+  num_samples: 1000
+  max_features: 20
+
+# Kaggle Submission Configuration
+kaggle:
+  submission_file: "submission.csv"
+  max_runtime_hours: 12
+  memory_limit_gb: 16

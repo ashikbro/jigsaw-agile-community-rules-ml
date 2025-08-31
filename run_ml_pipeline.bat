@@ -1,0 +1,19 @@
+@echo off
+echo Running ML pipeline for Jigsaw project...
+
+echo Activating virtual environment...
+call .venv\Scripts\activate.bat
+
+echo Running data analysis...
+python src\analyze_data.py
+
+echo Training baseline model...
+python src\train_baseline.py
+
+echo Training improved model...
+python src\train_improved.py
+
+echo Generating predictions...
+python src\predict_improved.py
+
+echo Pipeline complete!
