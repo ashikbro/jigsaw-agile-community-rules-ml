@@ -17,6 +17,7 @@ Date: 2025
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional, Union
 import joblib
@@ -120,6 +121,22 @@ class MultilingualPredictionResponse(BaseModel):
     timestamp: str
     processing_time_ms: float
 
+class ExplanationRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=10000, description="Text to explain")
+    model_type: Optional[str] = Field("auto", description="Model type: auto, human_aware, context_aware, or original")
+    explanation_type: Optional[str] = Field("comprehensive", description="Type of explanation: lime, feature_importance, or comprehensive")
+    num_features: Optional[int] = Field(10, description="Number of features to include in explanation")
+
+class ExplanationResponse(BaseModel):
+    text: str
+    prediction: str
+    confidence: float
+    probabilities: Dict[str, float]
+    explanation: Dict[str, Any]
+    model_used: str
+    timestamp: str
+    processing_time_ms: float
+
 class LanguageStatsResponse(BaseModel):
     total_texts_processed: int
     language_distribution: Dict[str, Dict[str, Union[int, float]]]
@@ -135,90 +152,36 @@ def load_all_models():
     
     logger.info("Loading models...")
     
-    # Load human-aware models
-    human_aware_dirs = glob.glob("models/human_aware_*")
-    for model_dir in human_aware_dirs:
+    # Load regular models (non-multilingual)
+    regular_model_files = glob.glob("models/*_model.joblib")
+    for model_file in regular_model_files:
         try:
-            model_files = glob.glob(os.path.join(model_dir, "*_model.joblib"))
-            vectorizer_files = glob.glob(os.path.join(model_dir, "*_vectorizer.joblib"))
+            model_name = os.path.basename(model_file).replace('_model.joblib', '')
+            vectorizer_file = f"models/{model_name}_vectorizer.joblib"
             
-            if model_files and vectorizer_files:
-                model_name = os.path.basename(model_files[0]).replace('_model.joblib', '')
-                key = f"human_aware_{model_name}"
+            if os.path.exists(vectorizer_file):
+                key = f"original_{model_name}"
+                models[key] = joblib.load(model_file)
+                vectorizers[key] = joblib.load(vectorizer_file)
                 
-                models[key] = joblib.load(model_files[0])
-                vectorizers[key] = joblib.load(vectorizer_files[0])
-                
-                if load_explainer_from_model_dir:
-                    explainers[key] = load_explainer_from_model_dir(model_dir)
+                # Try to create explainer for this model
+                if load_explainer_from_model_dir and ContentModerationExplainer:
+                    try:
+                        explainers[key] = ContentModerationExplainer(model_file, vectorizer_file)
+                        logger.info(f"Loaded explainer for model: {key}")
+                    except Exception as e:
+                        logger.error(f"Error loading explainer for {key}: {e}")
+                        explainers[key] = None
                 
                 model_info[key] = {
-                    "type": "human_aware",
-                    "path": model_dir,
+                    "type": "original",
+                    "path": "models",
                     "algorithm": model_name,
-                    "description": "Enhanced model with human vs non-human target distinction"
+                    "description": "Original baseline model"
                 }
-                logger.info(f"Loaded human-aware model: {key}")
+                logger.info(f"Loaded regular model: {key}")
         except Exception as e:
-            logger.error(f"Error loading human-aware model from {model_dir}: {e}")
-    
-    # Load context-aware models
-    context_aware_dirs = glob.glob("models/context_aware_*")
-    for model_dir in context_aware_dirs:
-        try:
-            model_files = glob.glob(os.path.join(model_dir, "*_model.joblib"))
-            vectorizer_files = glob.glob(os.path.join(model_dir, "*_vectorizer.joblib"))
-            
-            if model_files and vectorizer_files:
-                model_name = os.path.basename(model_files[0]).replace('_model.joblib', '')
-                key = f"context_aware_{model_name}"
-                
-                models[key] = joblib.load(model_files[0])
-                vectorizers[key] = joblib.load(vectorizer_files[0])
-                
-                if load_explainer_from_model_dir:
-                    explainers[key] = load_explainer_from_model_dir(model_dir)
-                
-                model_info[key] = {
-                    "type": "context_aware",
-                    "path": model_dir,
-                    "algorithm": model_name,
-                    "description": "Enhanced model with better context understanding"
-                }
-                logger.info(f"Loaded context-aware model: {key}")
-        except Exception as e:
-            logger.error(f"Error loading context-aware model from {model_dir}: {e}")
-    
-    # Load original models
-    original_model_dirs = ["models/large_dataset_*", "models/medium_dataset_*", "models"]
-    for pattern in original_model_dirs:
-        for model_dir in glob.glob(pattern):
-            try:
-                if os.path.isfile(model_dir):  # Skip files
-                    continue
-                    
-                model_files = glob.glob(os.path.join(model_dir, "*_model.joblib")) or \
-                             glob.glob(os.path.join(model_dir, "*.joblib"))
-                vectorizer_files = glob.glob(os.path.join(model_dir, "*_vectorizer.joblib")) or \
-                                  glob.glob(os.path.join(model_dir, "vectorizer.joblib"))
-                
-                if model_files and vectorizer_files:
-                    model_name = os.path.basename(model_files[0]).replace('_model.joblib', '').replace('.joblib', '')
-                    key = f"original_{model_name}"
-                    
-                    if key not in models:  # Avoid duplicates
-                        models[key] = joblib.load(model_files[0])
-                        vectorizers[key] = joblib.load(vectorizer_files[0])
-                        
-                        model_info[key] = {
-                            "type": "original",
-                            "path": model_dir,
-                            "algorithm": model_name,
-                            "description": "Original baseline model"
-                        }
-                        logger.info(f"Loaded original model: {key}")
-            except Exception as e:
-                logger.error(f"Error loading original model from {model_dir}: {e}")
+            logger.error(f"Error loading regular model from {model_file}: {e}")
     
     # Load multilingual models
     multilingual_model_files = glob.glob("models/*_multilingual.joblib")
@@ -231,6 +194,15 @@ def load_all_models():
                 key = f"multilingual_{model_name}"
                 models[key] = joblib.load(model_file)
                 vectorizers[key] = joblib.load(vectorizer_file)
+                
+                # Try to create explainer for this model
+                if load_explainer_from_model_dir and ContentModerationExplainer:
+                    try:
+                        explainers[key] = ContentModerationExplainer(model_file, vectorizer_file)
+                        logger.info(f"Loaded explainer for model: {key}")
+                    except Exception as e:
+                        logger.error(f"Error loading explainer for {key}: {e}")
+                        explainers[key] = None
                 
                 model_info[key] = {
                     "type": "multilingual",
@@ -344,6 +316,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files to serve the chatbot HTML
+app.mount("/static", StaticFiles(directory="."), name="static")
+
 # Store startup time for uptime calculation
 startup_time = time.time()
 
@@ -404,16 +379,26 @@ async def predict_text(
     try:
         # Make prediction
         model = models[model_key]
-        vectorizer = vectorizers[model_key]
+        vectorizer = vectorizers.get(model_key)
         
-        X = vectorizer.transform([input_data.text])
+        # Check if model is a pipeline (has steps attribute)
+        if hasattr(model, 'steps'):
+            # Model is a pipeline, pass raw text directly
+            model_input = [input_data.text]
+            logger.info(f"Using pipeline model with raw text input")
+        else:
+            # Model needs separate vectorization
+            if not vectorizer:
+                raise HTTPException(status_code=500, detail=f"No vectorizer found for model {model_key}")
+            model_input = vectorizer.transform([input_data.text])
+            logger.info(f"Vectorized input shape: {model_input.shape}")
         
         if hasattr(model, 'predict_proba'):
-            probabilities = model.predict_proba(X)[0]
+            probabilities = model.predict_proba(model_input)[0]
             prediction = "violation" if probabilities[1] > 0.5 else "safe"
             confidence = max(probabilities)
         else:
-            prediction_binary = model.predict(X)[0]
+            prediction_binary = model.predict(model_input)[0]
             prediction = "violation" if prediction_binary == 1 else "safe"
             confidence = 0.8  # Default confidence for models without predict_proba
             probabilities = [0.2, 0.8] if prediction_binary == 1 else [0.8, 0.2]
@@ -438,11 +423,12 @@ async def predict_text(
         # Add explanation if requested and available
         if input_data.include_explanation and model_key in explainers and explainers[model_key]:
             try:
-                explanation = explainers[model_key].explain_comprehensive(input_data.text)
+                explainer = explainers[model_key]
+                explanation = explainer.explain_comprehensive(input_data.text)
                 response_data["explanation"] = explanation
             except Exception as e:
                 logger.error(f"Error generating explanation: {e}")
-                response_data["explanation"] = {"error": "Explanation generation failed"}
+                response_data["explanation"] = {"error": f"Explanation generation failed: {str(e)}"}
         
         return PredictionResponse(**response_data)
         
@@ -472,7 +458,7 @@ async def predict_batch(
     
     try:
         model = models[model_key]
-        vectorizer = vectorizers[model_key]
+        vectorizer = vectorizers.get(model_key)
         explainer = explainers.get(model_key) if input_data.include_explanation else None
         
         results = []
@@ -481,14 +467,23 @@ async def predict_batch(
         for text in input_data.texts:
             text_start_time = time.time()
             
-            X = vectorizer.transform([text])
+            # Check if model is a pipeline (has steps attribute)
+            if hasattr(model, 'steps'):
+                # Model is a pipeline, pass raw text directly
+                model_input = [text]
+                logger.info(f"Using pipeline model with raw text input")
+            else:
+                # Model needs separate vectorization
+                if not vectorizer:
+                    raise HTTPException(status_code=500, detail=f"No vectorizer found for model {model_key}")
+                model_input = vectorizer.transform([text])
             
             if hasattr(model, 'predict_proba'):
-                probabilities = model.predict_proba(X)[0]
+                probabilities = model.predict_proba(model_input)[0]
                 prediction = "violation" if probabilities[1] > 0.5 else "safe"
                 confidence = max(probabilities)
             else:
-                prediction_binary = model.predict(X)[0]
+                prediction_binary = model.predict(model_input)[0]
                 prediction = "violation" if prediction_binary == 1 else "safe"
                 confidence = 0.8
                 probabilities = [0.2, 0.8] if prediction_binary == 1 else [0.8, 0.2]
@@ -513,7 +508,8 @@ async def predict_batch(
                     explanation = explainer.explain_comprehensive(text)
                     result_data["explanation"] = explanation
                 except Exception as e:
-                    result_data["explanation"] = {"error": "Explanation generation failed"}
+                    logger.error(f"Error generating explanation for text: {e}")
+                    result_data["explanation"] = {"error": f"Explanation generation failed: {str(e)}"}
             
             results.append(PredictionResponse(**result_data))
         
@@ -600,7 +596,7 @@ async def predict_multilingual(input_data: MultilingualTextInput, request: Reque
             raise HTTPException(status_code=503, detail="No models available")
         
         model = models[model_key]
-        vectorizer = vectorizers[model_key]
+        vectorizer = vectorizers.get(model_key)
         explainer = explainers.get(model_key)
         
         # Make prediction
@@ -609,16 +605,15 @@ async def predict_multilingual(input_data: MultilingualTextInput, request: Reque
         logger.info(f"Using model: {model_key}")
         logger.info(f"Model type: {type(model)}")
         
-        # Check if model is a pipeline (contains TF-IDF step)
-        is_pipeline = hasattr(model, 'steps')
-        logger.info(f"Model is pipeline: {is_pipeline}")
-        
-        if is_pipeline:
-            logger.info(f"Pipeline steps: {[step[0] for step in model.steps]}")
-            # For pipeline models, pass raw text directly
+        # Check if model is a pipeline (has steps attribute)
+        if hasattr(model, 'steps'):
+            # Model is a pipeline, pass raw text directly
             model_input = [text_to_process]
+            logger.info(f"Using pipeline model with raw text input")
         else:
-            # For non-pipeline models, use vectorizer
+            # Model needs separate vectorization
+            if not vectorizer:
+                raise HTTPException(status_code=500, detail=f"No vectorizer found for model {model_key}")
             logger.info(f"Vectorizer type: {type(vectorizer)}")
             model_input = vectorizer.transform([text_to_process])
             logger.info(f"Vectorized input type: {type(model_input)}, shape: {model_input.shape}")
@@ -666,12 +661,11 @@ async def predict_multilingual(input_data: MultilingualTextInput, request: Reque
         
         if input_data.include_explanation and explainer:
             try:
-                # Temporarily disable explanations to isolate the issue
-                # explanation = explainer.explain_comprehensive(text_to_process)
-                # result_data["explanation"] = explanation
-                result_data["explanation"] = {"info": "Explanations temporarily disabled for debugging"}
+                explanation = explainer.explain_comprehensive(text_to_process)
+                result_data["explanation"] = explanation
             except Exception as e:
-                result_data["explanation"] = {"error": "Explanation generation failed"}
+                logger.error(f"Error generating multilingual explanation: {e}")
+                result_data["explanation"] = {"error": f"Explanation generation failed: {str(e)}"}
         
         return MultilingualPredictionResponse(**result_data)
         
@@ -694,6 +688,178 @@ async def get_multilingual_stats():
         supported_languages=multilingual_moderator.get_supported_languages(),
         translation_enabled=True
     )
+
+@app.post("/explain", response_model=ExplanationResponse)
+async def explain_prediction(
+    input_data: ExplanationRequest,
+    request: Request,
+    _: bool = Depends(verify_token)
+):
+    """Generate detailed explanation for a prediction."""
+    start_time = time.time()
+    
+    # Rate limiting
+    client_ip = request.client.host
+    if not check_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    # Get model and explainer
+    model_key = get_best_model(input_data.model_type)
+    if not model_key:
+        raise HTTPException(status_code=503, detail="No models available")
+    
+    if model_key not in explainers or not explainers[model_key]:
+        raise HTTPException(status_code=503, detail="No explainer available for this model")
+    
+    try:
+        model = models[model_key]
+        vectorizer = vectorizers.get(model_key)
+        explainer = explainers[model_key]
+        
+        # Make prediction first
+        if hasattr(model, 'steps'):
+            model_input = [input_data.text]
+        else:
+            if not vectorizer:
+                raise HTTPException(status_code=500, detail=f"No vectorizer found for model {model_key}")
+            model_input = vectorizer.transform([input_data.text])
+        
+        if hasattr(model, 'predict_proba'):
+            probabilities = model.predict_proba(model_input)[0]
+            prediction = "violation" if probabilities[1] > 0.5 else "safe"
+            confidence = max(probabilities)
+        else:
+            prediction_binary = model.predict(model_input)[0]
+            prediction = "violation" if prediction_binary == 1 else "safe"
+            confidence = 0.8
+            probabilities = [0.2, 0.8] if prediction_binary == 1 else [0.8, 0.2]
+        
+        # Generate explanation based on type
+        if input_data.explanation_type == "lime":
+            explanation = explainer.explain_with_lime(input_data.text, input_data.num_features)
+        elif input_data.explanation_type == "feature_importance":
+            explanation = explainer.explain_with_feature_importance(input_data.text, input_data.num_features)
+        else:  # comprehensive
+            explanation = explainer.explain_comprehensive(input_data.text)
+        
+        return ExplanationResponse(
+            text=input_data.text,
+            prediction=prediction,
+            confidence=float(confidence),
+            probabilities={
+                "safe": float(probabilities[0]),
+                "violation": float(probabilities[1])
+            },
+            explanation=explanation,
+            model_used=model_key,
+            timestamp=datetime.now().isoformat(),
+            processing_time_ms=(time.time() - start_time) * 1000
+        )
+        
+    except Exception as e:
+        logger.error(f"Explanation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Explanation failed: {str(e)}")
+
+@app.post("/explain/multilingual", response_model=ExplanationResponse)
+async def explain_multilingual_prediction(
+    input_data: ExplanationRequest,
+    request: Request,
+    _: bool = Depends(verify_token)
+):
+    """Generate detailed explanation for a multilingual prediction."""
+    start_time = time.time()
+    
+    # Rate limiting
+    client_ip = request.client.host
+    if not check_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    if not multilingual_moderator:
+        raise HTTPException(status_code=503, detail="Multilingual support not available")
+    
+    try:
+        # Detect language
+        detected_lang, lang_confidence = multilingual_moderator.detect_language(input_data.text)
+        text_to_process = input_data.text
+        
+        # Translate if needed
+        if (multilingual_moderator.translator and detected_lang != "en"):
+            try:
+                translation_result = multilingual_moderator.translator.translate_text(
+                    input_data.text, detected_lang
+                )
+                translated_text = translation_result.get('translated_text')
+                if translated_text:
+                    text_to_process = translated_text
+            except Exception as e:
+                logger.error(f"Translation failed: {e}")
+        
+        # Get multilingual model
+        model_key = get_best_model("multilingual" if input_data.model_type == "auto" else input_data.model_type)
+        if not model_key:
+            model_key = get_best_model("auto")
+        if not model_key:
+            raise HTTPException(status_code=503, detail="No models available")
+        
+        if model_key not in explainers or not explainers[model_key]:
+            raise HTTPException(status_code=503, detail="No explainer available for this model")
+        
+        model = models[model_key]
+        explainer = explainers[model_key]
+        
+        # Make prediction
+        if hasattr(model, 'steps'):
+            model_input = [text_to_process]
+        else:
+            vectorizer = vectorizers.get(model_key)
+            if not vectorizer:
+                raise HTTPException(status_code=500, detail=f"No vectorizer found for model {model_key}")
+            model_input = vectorizer.transform([text_to_process])
+        
+        if hasattr(model, 'predict_proba'):
+            probabilities = model.predict_proba(model_input)[0]
+            prediction = "violation" if probabilities[1] > 0.5 else "safe"
+            confidence = max(probabilities)
+        else:
+            prediction_binary = model.predict(model_input)[0]
+            prediction = "violation" if prediction_binary == 1 else "safe"
+            confidence = 0.8
+            probabilities = [0.2, 0.8] if prediction_binary == 1 else [0.8, 0.2]
+        
+        # Generate explanation
+        if input_data.explanation_type == "lime":
+            explanation = explainer.explain_with_lime(text_to_process, input_data.num_features)
+        elif input_data.explanation_type == "feature_importance":
+            explanation = explainer.explain_with_feature_importance(text_to_process, input_data.num_features)
+        else:  # comprehensive
+            explanation = explainer.explain_comprehensive(text_to_process)
+        
+        # Add multilingual context to explanation
+        explanation["multilingual_context"] = {
+            "original_text": input_data.text,
+            "detected_language": detected_lang,
+            "language_confidence": float(lang_confidence),
+            "processed_text": text_to_process,
+            "was_translated": text_to_process != input_data.text
+        }
+        
+        return ExplanationResponse(
+            text=input_data.text,
+            prediction=prediction,
+            confidence=float(confidence),
+            probabilities={
+                "safe": float(probabilities[0]),
+                "violation": float(probabilities[1])
+            },
+            explanation=explanation,
+            model_used=model_key,
+            timestamp=datetime.now().isoformat(),
+            processing_time_ms=(time.time() - start_time) * 1000
+        )
+        
+    except Exception as e:
+        logger.error(f"Multilingual explanation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Multilingual explanation failed: {str(e)}")
 
 @app.get("/stats")
 async def get_stats():
