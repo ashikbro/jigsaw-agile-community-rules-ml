@@ -81,3 +81,22 @@ config/secrets.yaml
 *.zip
 *.tar.gz
 *.rar
+
+# Cache and temporary directories
+.pytest_cache/
+cache/
+bengali_generated/
+demo_output/
+integration_demo_logs/
+
+# Generated reports and benchmarks
+benchmark_report_*.md
+comprehensive_evaluation_report.md
+performance_charts.png
+reports/*.txt
+reports/*.png
+
+# Virtual environments (additional patterns)
+.venv_new/
+venv_*/
+env_*/

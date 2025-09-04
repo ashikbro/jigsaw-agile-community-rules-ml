@@ -44,17 +44,49 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Load the model
-model_path = MODEL_DIR / 'improved_model.joblib'
-if not model_path.exists():
-    model_path = MODEL_DIR / 'baseline_model.joblib'
+# Load the model - prioritize real dataset models
+model_candidates = [
+    MODEL_DIR / 'logistic_regression_real.pkl',  # Real dataset model (preferred)
+    MODEL_DIR / 'simple_model.pkl',              # Updated default model
+    MODEL_DIR / 'improved_model.joblib',         # Legacy improved model
+    MODEL_DIR / 'baseline_model.joblib'          # Legacy baseline model
+]
 
-try:
-    classifier = TextClassifier.load(model_path)
-    logger.info(f"Loaded model from {model_path}")
-except Exception as e:
-    logger.error(f"Failed to load model: {str(e)}")
-    classifier = None
+classifier = None
+vectorizer = None
+
+for model_path in model_candidates:
+    if model_path.exists():
+        try:
+            if str(model_path).endswith('.pkl'):
+                # Load sklearn model directly
+                import joblib
+                classifier = joblib.load(model_path)
+                
+                # Load corresponding vectorizer
+                if 'real' in str(model_path):
+                    vectorizer_path = MODEL_DIR / 'tfidf_vectorizer_real.pkl'
+                else:
+                    vectorizer_path = MODEL_DIR / 'tfidf_vectorizer.pkl'
+                    
+                if vectorizer_path.exists():
+                    vectorizer = joblib.load(vectorizer_path)
+                    logger.info(f"Loaded real dataset model from {model_path} with vectorizer {vectorizer_path}")
+                    break
+                else:
+                    logger.warning(f"Vectorizer not found for {model_path}")
+                    classifier = None
+            else:
+                # Load TextClassifier (legacy format)
+                classifier = TextClassifier.load(model_path)
+                logger.info(f"Loaded legacy model from {model_path}")
+                break
+        except Exception as e:
+            logger.warning(f"Failed to load model from {model_path}: {str(e)}")
+            continue
+
+if classifier is None:
+    logger.error("No valid model could be loaded")
 
 # Define request and response models
 class PredictionRequest(BaseModel):
@@ -99,12 +131,21 @@ def predict(request: PredictionRequest):
             text = f"Text: {request.text}\nRule: {request.rule_text}"
         
         # Get prediction
-        probability = classifier.predict_proba(text)
-        prediction = 1 if probability >= 0.5 else 0
+        if vectorizer is not None:
+            # Use sklearn model with vectorizer (real dataset models)
+            X = vectorizer.transform([text])
+            prediction = int(classifier.predict(X)[0])
+            probabilities = classifier.predict_proba(X)[0]
+            probability = float(probabilities[1] if len(probabilities) > 1 else probabilities[0])
+        else:
+            # Use TextClassifier (legacy models)
+            probability = classifier.predict_proba(text)
+            prediction = 1 if probability >= 0.5 else 0
+            probability = float(probability)
         
         return PredictionResponse(
             prediction=prediction,
-            probability=float(probability),
+            probability=probability,
             text=request.text
         )
     except Exception as e:
@@ -130,7 +171,24 @@ def explain_prediction(request: ExplanationRequest):
             text = f"Text: {request.text}\nRule: {request.rule_text}"
         
         # Get prediction with explanation
-        result = predict_with_explanation(text, classifier, request.explanation_type)
+        if vectorizer is not None:
+            # For sklearn models, we need to create a wrapper for explainable AI
+            class ModelWrapper:
+                def __init__(self, model, vectorizer):
+                    self.model = model
+                    self.vectorizer = vectorizer
+                
+                def predict_proba(self, texts):
+                    if isinstance(texts, str):
+                        texts = [texts]
+                    X = self.vectorizer.transform(texts)
+                    return self.model.predict_proba(X)
+            
+            wrapped_classifier = ModelWrapper(classifier, vectorizer)
+            result = predict_with_explanation(text, wrapped_classifier, request.explanation_type)
+        else:
+            # Use TextClassifier directly (legacy models)
+            result = predict_with_explanation(text, classifier, request.explanation_type)
         
         # Add the original text to the response
         result["text"] = request.text

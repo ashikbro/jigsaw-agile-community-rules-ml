@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Model Evaluation Results</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #4facfe;
+        }
+        .section h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h3 {
+            color: #34495e;
+            margin-top: 25px;
+            font-size: 1.4em;
+        }
+        .image-container {
+            text-align: center;
+            margin: 20px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .image-caption {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .insights {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .insights h4 {
+            color: #155724;
+            margin-top: 0;
+        }
+        .insights ul {
+            color: #155724;
+            margin: 10px 0;
+        }
+        .performance-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .performance-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-top: 3px solid #4facfe;
+        }
+        .performance-card h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-value {
+            font-weight: bold;
+            color: #4facfe;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .comparison-table th {
+            background: #4facfe;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        @media (max-width: 768px) {
+            .performance-comparison {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Enhanced Model Evaluation Results</h1>
+            <p>Comprehensive Analysis of Machine Learning Models for Toxic Comment Classification</p>
+        </div>
+        
+        <div class="content">
+            <!-- Fast Model Results Section -->
+            <div class="section">
+                <h2><span class="emoji">⚡</span> Fast Model Evaluation Results</h2>
+                <p>Optimized evaluation with realistic performance metrics completed in ~2.5 minutes</p>
+                
+                <div class="insights">
+                    <h4>🎯 Key Performance Insights</h4>
+                    <ul>
+                        <li><strong>Best F1 Score:</strong> 0.7673 (Random Forest, Extra Trees, Light Random Forest)</li>
+                        <li><strong>Best Accuracy:</strong> 90.6% (Multiple models tied)</li>
+                        <li><strong>Best ROC-AUC:</strong> 0.8191 (Light Random Forest)</li>
+                        <li><strong>Fastest Training:</strong> 0.031s (Logistic Regression)</li>
+                        <li><strong>Most Balanced:</strong> Random Forest (good performance + reasonable speed)</li>
+                    </ul>
+                </div>
+                
+                <h3>📊 Model Performance Comparison</h3>
+                <div class="image-container">
+                    <img src="eda/fast_model_comparison.png" alt="Fast Model Performance Comparison">
+                    <div class="image-caption">Comprehensive comparison of model performance metrics including accuracy, F1 score, training time, and precision vs recall analysis</div>
+                </div>
+                
+                <h3>🎯 Confusion Matrices (Top 3 Models)</h3>
+                <div class="image-container">
+                    <img src="eda/fast_confusion_matrices.png" alt="Fast Model Confusion Matrices">
+                    <div class="image-caption">Detailed confusion matrices showing prediction accuracy for Normal vs Toxic classifications</div>
+                </div>
+                
+                <h3>📈 ROC Curves Analysis</h3>
+                <div class="image-container">
+                    <img src="eda/fast_roc_curves.png" alt="Fast Model ROC Curves">
+                    <div class="image-caption">ROC curves comparing the trade-off between true positive rate and false positive rate</div>
+                </div>
+            </div>
+            
+            <!-- Original Results Section -->
+            <div class="section">
+                <h2><span class="emoji">📊</span> Original Model Analysis</h2>
+                <p>Baseline analysis with perfect synthetic data for comparison</p>
+                
+                <h3>📈 Feature Distribution Analysis</h3>
+                <div class="image-container">
+                    <img src="eda/histograms_analysis.png" alt="Feature Histograms">
+                    <div class="image-caption">Distribution analysis of text-based features including length, word count, and character statistics</div>
+                </div>
+                
+                <h3>🎯 Target Variable Distribution</h3>
+                <div class="image-container">
+                    <img src="eda/target_distribution.png" alt="Target Distribution">
+                    <div class="image-caption">Analysis of class distribution showing the imbalance between Normal and Toxic comments</div>
+                </div>
+                
+                <h3>🔍 Original Confusion Matrices</h3>
+                <div class="image-container">
+                    <img src="eda/confusion_matrices.png" alt="Original Confusion Matrices">
+                    <div class="image-caption">Perfect classification results from the original synthetic dataset</div>
+                </div>
+                
+                <h3>📝 Text Analysis by Toxicity</h3>
+                <div class="image-container">
+                    <img src="eda/text_analysis.png" alt="Text Analysis">
+                    <div class="image-caption">Comparative analysis of text characteristics between Normal and Toxic comments</div>
+                </div>
+                
+                <h3>🔗 Feature Correlation Matrix</h3>
+                <div class="image-container">
+                    <img src="eda/correlation_matrix.png" alt="Correlation Matrix">
+                    <div class="image-caption">Correlation analysis between different text features and toxicity labels</div>
+                </div>
+            </div>
+            
+            <!-- Performance Comparison -->
+            <div class="section">
+                <h2><span class="emoji">⚖️</span> Performance Comparison: Fast vs Original</h2>
+                
+                <div class="performance-comparison">
+                    <div class="performance-card">
+                        <h4>⚡ Fast Model Evaluation</h4>
+                        <div class="metric">
+                            <span>Dataset Size:</span>
+                            <span class="metric-value">5,000 samples</span>
+                        </div>
+                        <div class="metric">
+                            <span>Features:</span>
+                            <span class="metric-value">1,000 TF-IDF + 9 numerical</span>
+                        </div>
+                        <div class="metric">
+                            <span>Best F1 Score:</span>
+                            <span class="metric-value">0.7673</span>
+                        </div>
+                        <div class="metric">
+                            <span>Best Accuracy:</span>
+                            <span class="metric-value">90.6%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Total Time:</span>
+                            <span class="metric-value">~2.5 minutes</span>
+                        </div>
+                        <div class="metric">
+                            <span>Realism:</span>
+                            <span class="metric-value">High (with noise)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="performance-card">
+                        <h4>📊 Original Evaluation</h4>
+                        <div class="metric">
+                            <span>Dataset Size:</span>
+                            <span class="metric-value">1,000 samples</span>
+                        </div>
+                        <div class="metric">
+                            <span>Features:</span>
+                            <span class="metric-value">Basic text features</span>
+                        </div>
+                        <div class="metric">
+                            <span>Best F1 Score:</span>
+                            <span class="metric-value">1.0000</span>
+                        </div>
+                        <div class="metric">
+                            <span>Best Accuracy:</span>
+                            <span class="metric-value">100%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Total Time:</span>
+                            <span class="metric-value">~30 seconds</span>
+                        </div>
+                        <div class="metric">
+                            <span>Realism:</span>
+                            <span class="metric-value">Low (perfect data)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Key Insights -->
+            <div class="section">
+                <h2><span class="emoji">💡</span> Key Insights & Recommendations</h2>
+                
+                <div class="insights">
+                    <h4>🚀 Model Performance Insights</h4>
+                    <ul>
+                        <li><strong>Realistic Performance:</strong> The fast evaluation shows more realistic metrics (76.7% F1 vs 100%) due to added noise and complexity</li>
+                        <li><strong>Model Consistency:</strong> Random Forest variants (RF, Extra Trees, Light RF) performed consistently well</li>
+                        <li><strong>Speed vs Accuracy:</strong> Logistic Regression offers the best speed-accuracy trade-off for production use</li>
+                        <li><strong>Class Imbalance:</strong> 18.8% toxic comments create a realistic challenge for classification</li>
+                    </ul>
+                </div>
+                
+                <div class="insights">
+                    <h4>🔧 Technical Improvements</h4>
+                    <ul>
+                        <li><strong>Feature Engineering:</strong> TF-IDF with bigrams + numerical features provide good representation</li>
+                        <li><strong>Data Balancing:</strong> SMOTE effectively handles class imbalance (81.2% vs 18.8%)</li>
+                        <li><strong>Cross-Validation:</strong> 3-fold CV provides reliable performance estimates</li>
+                        <li><strong>Optimization:</strong> Reduced parameters maintain performance while improving speed</li>
+                    </ul>
+                </div>
+                
+                <div class="insights">
+                    <h4>📈 Next Steps for Production</h4>
+                    <ul>
+                        <li><strong>Hyperparameter Tuning:</strong> Use GridSearchCV or RandomizedSearchCV for optimal parameters</li>
+                        <li><strong>Ensemble Methods:</strong> Combine top 3 models for improved robustness</li>
+                        <li><strong>Real Data Testing:</strong> Validate on actual toxic comment datasets</li>
+                        <li><strong>Monitoring:</strong> Implement performance monitoring and model drift detection</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Model Comparison Table -->
+            <div class="section">
+                <h2><span class="emoji">📋</span> Detailed Model Comparison</h2>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>F1 Score</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>ROC-AUC</th>
+                            <th>Training Time</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Random Forest</strong></td>
+                            <td>0.7673</td>
+                            <td>90.6%</td>
+                            <td>0.9118</td>
+                            <td>0.6624</td>
+                            <td>0.8150</td>
+                            <td>0.26s</td>
+                            <td>Balanced performance</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Extra Trees</strong></td>
+                            <td>0.7673</td>
+                            <td>90.6%</td>
+                            <td>0.9118</td>
+                            <td>0.6624</td>
+                            <td>0.8064</td>
+                            <td>0.22s</td>
+                            <td>Speed + performance</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Light Random Forest</strong></td>
+                            <td>0.7673</td>
+                            <td>90.6%</td>
+                            <td>0.9118</td>
+                            <td>0.6624</td>
+                            <td>0.8191</td>
+                            <td>0.14s</td>
+                            <td>Best ROC-AUC</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gradient Boosting</strong></td>
+                            <td>0.7605</td>
+                            <td>90.3%</td>
+                            <td>0.9006</td>
+                            <td>0.6581</td>
+                            <td>0.7997</td>
+                            <td>9.72s</td>
+                            <td>Complex patterns</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Logistic Regression</strong></td>
+                            <td>0.7598</td>
+                            <td>90.2%</td>
+                            <td>0.8908</td>
+                            <td>0.6624</td>
+                            <td>0.8184</td>
+                            <td>0.03s</td>
+                            <td>Production speed</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
