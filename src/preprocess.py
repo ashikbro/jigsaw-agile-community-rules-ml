@@ -1,5 +1,6 @@
 import os
 import re
+import hashlib
 import logging
 import pandas as pd
 import numpy as np
@@ -20,6 +21,35 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+class _FallbackTokenizer:
+    """Small deterministic tokenizer for offline preprocessing and tests."""
+
+    def __init__(self, max_length: int):
+        self.max_length = max_length
+
+    def __call__(self, texts, padding, truncation, max_length, return_tensors,
+                 return_attention_mask, return_token_type_ids):
+        input_ids = []
+        attention_mask = []
+        token_type_ids = []
+        for text in texts:
+            tokens = text.split()[:max_length]
+            ids = [
+                int.from_bytes(hashlib.sha256(token.encode('utf-8')).digest()[:4], 'big') % 30000 + 1
+                for token in tokens
+            ]
+            mask = [1] * len(ids)
+            ids.extend([0] * (max_length - len(ids)))
+            mask.extend([0] * (max_length - len(mask)))
+            input_ids.append(ids)
+            attention_mask.append(mask)
+            token_type_ids.append([0] * max_length)
+        return {
+            'input_ids': np.asarray(input_ids, dtype=np.int64),
+            'attention_mask': np.asarray(attention_mask, dtype=np.int64),
+            'token_type_ids': np.asarray(token_type_ids, dtype=np.int64),
+        }
+
 class DataPreprocessor:
     """Class for preprocessing the Jigsaw Agile Community Rules dataset."""
     
@@ -32,7 +62,15 @@ class DataPreprocessor:
         """
         self.tokenizer_name = tokenizer_name or MODEL_CONFIG['model_name']
         self.max_length = max_length or MODEL_CONFIG['max_length']
-        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
+        except OSError as exc:
+            logger.warning(
+                "Tokenizer %s is unavailable locally; using deterministic fallback: %s",
+                self.tokenizer_name,
+                exc,
+            )
+            self.tokenizer = _FallbackTokenizer(self.max_length)
         
         # Text cleaning patterns
         self.url_pattern = re.compile(r'https?\S+|www\.\S+')
@@ -81,8 +119,11 @@ class DataPreprocessor:
         
         # Clean text columns
         text_columns = [col for col in PROCESSING_CONFIG['text_columns'] if col in df.columns]
+        if not text_columns:
+            expected = ', '.join(PROCESSING_CONFIG['text_columns'])
+            raise ValueError(f"Input data must contain at least one configured text column: {expected}")
         for col in text_columns:
-            df[col] = df[col].astype(str).apply(self.clean_text)
+            df[col] = df[col].fillna("").apply(self.clean_text)
         
         return df
     
@@ -96,12 +137,15 @@ class DataPreprocessor:
             Dictionary containing tokenized inputs
         """
         text_columns = [col for col in PROCESSING_CONFIG['text_columns'] if col in df.columns]
+        if not text_columns:
+            expected = ', '.join(PROCESSING_CONFIG['text_columns'])
+            raise ValueError(f"Input data must contain at least one configured text column: {expected}")
         
         # Combine text columns with a separator
         if len(text_columns) > 1:
             texts = df[text_columns[0]].str.cat(df[text_columns[1:]], sep=' [SEP] ')
         else:
-            texts = df[text_columns[0]]
+            texts = df[text_columns[0]].fillna("")
         
         # Tokenize the text
         tokenized = self.tokenizer(

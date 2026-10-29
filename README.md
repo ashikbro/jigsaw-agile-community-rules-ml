@@ -21,7 +21,7 @@ This project provides a complete framework for text classification with explaina
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/jigsaw-agile-community-rules-ml.git
+git clone https://github.com/ashikbro/jigsaw-agile-community-rules-ml.git
 cd jigsaw-agile-community-rules-ml
 
 # Create virtual environment
@@ -29,20 +29,21 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_simple.txt
+pip install -e .
 ```
 
 ### Basic Usage
 
 ```python
 # Train a simple model
-python train_simple_model.py
+python training/train_simple_model.py
 
 # Run API server
-python api_server.py
+python api/api_server.py
 
 # Start interactive demo
-python streamlit_demo.py
+python demos/streamlit_demo.py
 ```
 
 ## 📁 Project Structure
@@ -127,7 +128,8 @@ pytest tests/test_preprocess.py
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is intended to be released under the MIT License. Add a `LICENSE`
+file before publishing or accepting external contributions.
 
 ## 🙏 Acknowledgments
 
